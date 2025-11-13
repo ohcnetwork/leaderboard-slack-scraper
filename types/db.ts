@@ -1,5 +1,5 @@
 export enum ActivityDefinition {
-  EXAMPLE_ACTIVITY = "example_activity",
+  EOD_UPDATE = "eod_update",
 }
 
 export interface Activity {
