@@ -226,3 +226,27 @@ export async function deleteSlackEodMessages(ids: number[]) {
 
   console.log(`Deleted ${result.affectedRows} processed EOD messages`);
 }
+
+/**
+ * Get all Slack EOD messages for export
+ * @returns Array of all EOD messages
+ */
+export async function getAllSlackEodMessages() {
+  const db = getDb();
+
+  const result = await db.query<{
+    id: number;
+    user_id: string;
+    timestamp: string;
+    text: string;
+  }>(
+    `SELECT id, user_id, timestamp, text FROM slack_eod_update ORDER BY timestamp;`
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    timestamp: new Date(row.timestamp),
+    text: row.text,
+  }));
+}

@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/db";
+import { getAllSlackEodMessages, getDb } from "@/lib/db";
 import { Activity, ActivityDefinition } from "@/types/db";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
@@ -68,6 +68,56 @@ async function main() {
   console.log(
     `✓ Successfully exported ${filesWritten} contributor activity files to ${outputDir}`
   );
+
+  // Export Slack EOD messages
+  console.log("\nExporting Slack EOD messages...");
+  const eodMessages = await getAllSlackEodMessages();
+  console.log(`Found ${eodMessages.length} EOD messages`);
+
+  if (eodMessages.length > 0) {
+    // Group EOD messages by user_id
+    console.log("Grouping EOD messages by user...");
+    const eodMessagesByUser = new Map<string, typeof eodMessages>();
+
+    for (const message of eodMessages) {
+      const userId = message.user_id;
+      if (!eodMessagesByUser.has(userId)) {
+        eodMessagesByUser.set(userId, []);
+      }
+      eodMessagesByUser.get(userId)!.push(message);
+    }
+
+    console.log(
+      `Found ${eodMessagesByUser.size} unique users with EOD messages`
+    );
+
+    // Create output directory for EOD messages
+    const eodOutputDir = join(flatDataPath, "slack_eod_messages");
+    console.log(`Creating EOD output directory: ${eodOutputDir}`);
+    await mkdir(eodOutputDir, { recursive: true });
+
+    // Write JSON files for each user
+    console.log("Writing EOD message JSON files...");
+    let eodFilesWritten = 0;
+
+    for (const [userId, userMessages] of eodMessagesByUser) {
+      const filePath = join(eodOutputDir, `${userId}.json`);
+      await writeFile(filePath, JSON.stringify(userMessages, null, 2), "utf-8");
+      eodFilesWritten++;
+
+      if (eodFilesWritten % 10 === 0) {
+        console.log(
+          `Progress: ${eodFilesWritten}/${eodMessagesByUser.size} EOD files written`
+        );
+      }
+    }
+
+    console.log(
+      `✓ Successfully exported ${eodFilesWritten} user EOD message files to ${eodOutputDir}`
+    );
+  } else {
+    console.log("No EOD messages to export");
+  }
 }
 
 main();
