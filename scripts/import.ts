@@ -5,14 +5,14 @@ import { join } from "path";
 import { existsSync } from "fs";
 
 async function main() {
-  // Check for FLAT_DATA_PATH environment variable
-  const flatDataPath = process.env.FLAT_DATA_PATH;
+  // Check for LEADERBOARD_DATA_PATH environment variable
+  const flatDataPath = process.env.LEADERBOARD_DATA_PATH;
   if (!flatDataPath) {
-    throw new Error("FLAT_DATA_PATH environment variable is not set");
+    throw new Error("LEADERBOARD_DATA_PATH environment variable is not set");
   }
 
   // Import activities
-  const inputDir = join(flatDataPath, "activities");
+  const inputDir = join(flatDataPath, "data", "slack", "activities");
   console.log(`Reading JSON files from: ${inputDir}`);
 
   let allActivities: Activity[] = [];
@@ -64,7 +64,7 @@ async function main() {
 
   // Import Slack EOD messages
   console.log("\nImporting Slack EOD messages...");
-  const eodInputDir = join(flatDataPath, "slack_eod_messages");
+  const eodInputDir = join(flatDataPath, "data", "slack", "eod_messages");
   console.log(`Reading JSON files from: ${eodInputDir}`);
 
   let allEodMessages: {
