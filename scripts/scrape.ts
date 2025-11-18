@@ -205,8 +205,8 @@ export async function ingestEodUpdates() {
 }
 
 async function main() {
-  const days = process.env.SCRAPE_DAYS ? parseInt(process.env.SCRAPE_DAYS) : 1;
-  const since = subDays(new Date(), days);
+  const days = process.env.SCRAPE_DAYS && parseInt(process.env.SCRAPE_DAYS);
+  const since = days ? subDays(new Date(), days) : undefined;
 
   console.log(`Preparing database...`);
   await upsertActivityDefinitions();
