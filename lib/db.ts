@@ -181,6 +181,30 @@ export async function getContributorsBySlackUserIds(slackUserIds: string[]) {
 }
 
 /**
+ * Get display names for Slack user IDs
+ * @param slackUserIds - Array of Slack user IDs to search for
+ * @returns Map of slack_user_id to display name
+ */
+export async function getDisplayNamesBySlackUserIds(slackUserIds: string[]) {
+  const db = getDb();
+
+  const result = await db.query<{ name: string; slack_user_id: string }>(
+    `SELECT name, meta->>'slack_user_id' as slack_user_id 
+     FROM contributor 
+     WHERE meta->>'slack_user_id' = ANY($1);`,
+    [slackUserIds]
+  );
+
+  // Create a map for O(1) lookups
+  const displayNameMap = new Map<string, string>();
+  for (const row of result.rows) {
+    displayNameMap.set(row.slack_user_id, row.name);
+  }
+
+  return displayNameMap;
+}
+
+/**
  * Get all pending EOD updates grouped by user_id
  * @returns Array of grouped EOD updates per user
  */

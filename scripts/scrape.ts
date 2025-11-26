@@ -3,6 +3,7 @@ import {
   addSlackEodMessages,
   deleteSlackEodMessages,
   getContributorsBySlackUserIds,
+  getDisplayNamesBySlackUserIds,
   getPendingEodUpdates,
   upsertActivityDefinitions,
 } from "@/lib/db";
@@ -103,10 +104,11 @@ export async function ingestEodUpdates() {
   // Bulk lookup all contributors by their Slack user IDs in a single query
   const slackUserIds = pendingUpdates.map((u) => u.user_id);
   const contributorMap = await getContributorsBySlackUserIds(slackUserIds);
+  const displayNameMap = await getDisplayNamesBySlackUserIds(slackUserIds);
 
   let processedCount = 0;
   let skippedCount = 0;
-  const warnings: string[] = [];
+  const warnings: { slackId: string; displayName: string }[] = [];
   const allActivities: Activity[] = [];
   const processedMessageIds: number[] = [];
 
@@ -117,10 +119,11 @@ export async function ingestEodUpdates() {
     const contributorUsername = contributorMap.get(user_id);
 
     if (!contributorUsername) {
+      const displayName = displayNameMap.get(user_id) || user_id;
       console.warn(
-        `⚠️  No contributor found with slack_user_id: ${user_id} (${ids.length} messages skipped)`
+        `⚠️  No contributor found for ${displayName} (${user_id}): ${ids.length} messages skipped`
       );
-      warnings.push(user_id);
+      warnings.push({ slackId: user_id, displayName });
       skippedCount += ids.length;
       continue;
     }
@@ -159,6 +162,7 @@ export async function ingestEodUpdates() {
     // Create activities for each date
     for (const [date, { texts: dayTexts, timestamp }] of messagesByDate) {
       const mergedText = dayTexts.join("\n\n");
+      const displayName = displayNameMap.get(user_id);
 
       allActivities.push({
         slug: `${ActivityDefinition.EOD_UPDATE}_${date}_${contributorUsername}`,
@@ -169,7 +173,7 @@ export async function ingestEodUpdates() {
         link: null,
         text: mergedText,
         points: null,
-        meta: null,
+        meta: displayName ? { display_name: displayName, slack_user_id: user_id } : null,
       });
     }
 
@@ -197,9 +201,10 @@ export async function ingestEodUpdates() {
   console.log(`Processed: ${processedCount} messages`);
   console.log(`Skipped: ${skippedCount} messages`);
   if (warnings.length > 0) {
-    console.log(
-      `\nUnmatched Slack user IDs (${warnings.length}): ${warnings.join(", ")}`
-    );
+    console.log(`\nUnmatched Slack users (${warnings.length}):`);
+    warnings.forEach(({ displayName, slackId }) => {
+      console.log(`  - ${displayName} (${slackId})`);
+    });
   }
   console.log("=============================\n");
 }
