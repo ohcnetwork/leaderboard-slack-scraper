@@ -6,7 +6,7 @@ import {
   getPendingEodUpdates,
   upsertActivityDefinitions,
 } from "@/lib/db";
-import { subDays } from "date-fns";
+import { format, subDays } from "date-fns";
 
 import { slack } from "@/lib/slack-web-client";
 import { toHTML } from "slack-markdown";
@@ -138,7 +138,7 @@ export async function ingestEodUpdates() {
 
       if (!timestamp || text === undefined || id === undefined) continue;
 
-      const date = timestamp.toISOString().split("T")[0];
+      const date = format(timestamp, "yyyy-MM-dd");
       if (!date) continue;
 
       if (!messagesByDate.has(date)) {
